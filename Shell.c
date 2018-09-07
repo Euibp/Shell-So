@@ -3,69 +3,71 @@
 #include "stdio.h"
 #include <string.h>
 #include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
 
 #define MAX_COUTER 1000
 #define MAX_NUMBER_ARG 100
 #define BIN_SIZE 6 // size of "/bin/" +1 EOF
 
-typedef char** string_list;
 
-int getstring(char** out_comando, string_list* out_Arguments, char** out_path);
+typedef char** string_list; // só para não fazer ponteiro de ponteiro de ponteiro.
+typedef  enum error_shell{SUCESSO, SAIR} error_shell;
 
-// void signal_handler (int sigNumber){
-	// if (sigNumber == SIGTERM)
-	// printf(“Recebi um SIGTERM”);
-// }
+
+error_shell getstring(char** out_comando, string_list* out_Arguments, char** out_path);
+void signal_handler (int sigNumber);
+
+void signal_handler (int sigNumber){
+	if (sigNumber == SIGUSR1)
+	printf("Recebi um SIGUSR1");
+}
 
 
 
 int main()
 {
+	signal(SIGUSR1, signal_handler);
 	//char *comando = (char*)malloc(sizeof(5));
 	char *comando = NULL;
 	char *caminho_saida = NULL;
-	int interador;
+	int interador = 0;
 	string_list argumentos;
 	FILE* arquivo;
 	while (1)
 	{
 		printf("Digite os argumentos o nome da comando e os argumentos:\n");
-		if (getstring(&comando,&argumentos, &caminho_saida) == 1){
+		if (getstring(&comando,&argumentos, &caminho_saida) == SAIR){
 			break;
 		};
-		printf("Voce escreveu %i letras: %s \n", strlen(comando), comando);
+		printf("\n# Iniciando Processo \n");
 
-		/*
-		int child_pid = fork();
-		if (child_pid == 0) {
+		int filho_pid = fork();
+		if (filho_pid == 0) {
+		 	if(caminho_saida != NULL){
+				arquivo = fopen(caminho_saida, "w");
+				dup2(fileno(arquivo), fileno(stdout));
+				free(caminho_saida);
+				caminho_saida = NULL;
+				printf("MOLY");
+			 }
 			execvp(comando,argumentos);
+			return SUCESSO;
 		} else {
 			wait(NULL);
-			return 0;
+			printf("# Processo Finalizado\n\n");
+			continue;
 		}	
 		
-		*/
-			 if(caminho_saida != NULL){
-					// arquivo = fopen(caminho_saida, "w");
-					// dup2(fileno(arquivo), fileno(stdout));
-					free(caminho_saida);
-					caminho_saida = NULL;
-					printf("MOL %d \n", (caminho_saida==NULL));
-
-			 }
-		
-			while(argumentos[interador] != NULL){
-			printf("%d -- %s\n", &argumentos[interador],argumentos[interador]);
-			free(argumentos[interador]);
-			interador++;
-		}interador=0;
-		
+		dup2(fileno(stdout), fileno(stdout));
+		fclose(arquivo);
 		printf("isso ai\n\n");
 		free(comando);
 		comando=NULL; 
+		free(argumentos);
 	}
 	
-	printf("Ending\n\n");
+	printf("Finalizando Shell ...\n\n");
 	 // string = (char*)malloc(sizeof(MAX_COUTER));
 	// fgets(comando, MAX_COUTER, stdin);
 
@@ -74,49 +76,43 @@ int main()
 }
 
 //Código de aquisição de comando e argumentos com tratamento para 
-int getstring(char** out_comando, string_list* out_Arguments, char** out_path){
+error_shell getstring(char** out_comando, string_list* out_Arguments, char** out_path){
 	char inString[MAX_COUTER];
 	char* inArguments;
-	char* token;
 	int counter = 0;
 	
 	fgets(inString, MAX_COUTER, stdin);
-	char* listArguments[MAX_NUMBER_ARG];
 
-	inArguments = strtok_s(inString, " \n", &token);
+	inArguments = strtok(inString, " \n");
 	if(strcmp(inArguments,"sair")==0){
-		return 1;
+		return SAIR;
 	}
 	
 	*out_comando = (char*)malloc( strlen(inArguments) + BIN_SIZE);
 	//realloc(out_comando, strlen(inArguments) + BIN_SIZE);
-	strcpy_s(*out_comando, BIN_SIZE, "/bin/");
-	strcat_s(*out_comando, strlen(inArguments) + BIN_SIZE, inArguments);
-	//printf("%s\n", out_comando);	
+	strcpy(*out_comando, "/bin/");
+	strcat(*out_comando, inArguments);
+	//printf("%s\n", out_comando);
+	*out_Arguments = (char**)malloc(MAX_NUMBER_ARG);	
 	while (inArguments != NULL)
 	{
-		listArguments[counter] = (char*)malloc(strlen(inArguments)+1); //aloca espaço para string +1 para EOF
-		strcpy_s(listArguments[counter],strlen(inArguments)+1,inArguments);
-		printf("%d -- %s", &listArguments[counter],listArguments[counter]);
+		(*out_Arguments)[counter] = (char*)malloc(strlen(inArguments)+1); //aloca espaço para string +1 para EOF
+		strcpy((*out_Arguments)[counter],inArguments);
 		counter++;
-		inArguments = strtok_s(NULL, " \n", &token);
+		inArguments = strtok(NULL, " \n");
 		
 		// area para receber path de saida
 		if(inArguments!=NULL){  // evita problema de comparação
 			if(strcmp(inArguments,">>") == 0 ){
-				inArguments = strtok_s(NULL, " \n", &token);
+				inArguments = strtok(NULL, " \n");
 				*out_path = (char*)malloc(strlen(inArguments)+1);
-				
-				//realloc(out_path,strlen(inArguments)+1);
-				strcpy_s(*out_path,strlen(inArguments)+1,inArguments);
-				//printf("%s", out_path );
+				strcpy(*out_path,inArguments);
 				inArguments = (char*)NULL;
 			}
 		}
 		printf(" -- end \n");
 	}
-	listArguments[counter] = inArguments;
-	*out_Arguments = listArguments;	
-	//printf("%s\n", out_comando);	
-	return 0; 
+	(*out_Arguments)[counter] = inArguments;
+
+	return SUCESSO; 
 }

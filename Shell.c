@@ -6,11 +6,11 @@
 
 #define MAX_COUTER 1000
 #define MAX_NUMBER_ARG 100
-#define BIN_SIZE 6
+#define BIN_SIZE 6 // size of "/bin/" +1 EOF
 
 typedef char** string_list;
 
-int getstring(char* out_comando, string_list* out_Arguments, char* out_path);
+int getstring(char** out_comando, string_list* out_Arguments, char** out_path);
 
 // void signal_handler (int sigNumber){
 	// if (sigNumber == SIGTERM)
@@ -21,7 +21,8 @@ int getstring(char* out_comando, string_list* out_Arguments, char* out_path);
 
 int main()
 {
-	char *comando = (char*)malloc(sizeof(5));
+	//char *comando = (char*)malloc(sizeof(5));
+	char *comando = NULL;
 	char *caminho_saida = NULL;
 	int interador;
 	string_list argumentos;
@@ -29,8 +30,8 @@ int main()
 	while (1)
 	{
 		printf("Digite os argumentos o nome da comando e os argumentos:\n");
-		if (getstring(comando,&argumentos, caminho_saida) == 1){
-			continue;
+		if (getstring(&comando,&argumentos, &caminho_saida) == 1){
+			break;
 		};
 		printf("Voce escreveu %i letras: %s \n", strlen(comando), comando);
 
@@ -48,6 +49,7 @@ int main()
 					// arquivo = fopen(caminho_saida, "w");
 					// dup2(fileno(arquivo), fileno(stdout));
 					free(caminho_saida);
+					caminho_saida = NULL;
 					printf("MOL %d \n", (caminho_saida==NULL));
 
 			 }
@@ -59,17 +61,20 @@ int main()
 		}interador=0;
 		
 		printf("isso ai\n\n");
-
+		free(comando);
+		comando=NULL; 
 	}
-
+	
+	printf("Ending\n\n");
 	 // string = (char*)malloc(sizeof(MAX_COUTER));
 	// fgets(comando, MAX_COUTER, stdin);
-	free(comando);
+
 	
 	return 0;
 }
 
-int getstring(char* out_comando, string_list* out_Arguments, char* out_path){
+//Código de aquisição de comando e argumentos com tratamento para 
+int getstring(char** out_comando, string_list* out_Arguments, char** out_path){
 	char inString[MAX_COUTER];
 	char* inArguments;
 	char* token;
@@ -78,14 +83,15 @@ int getstring(char* out_comando, string_list* out_Arguments, char* out_path){
 	fgets(inString, MAX_COUTER, stdin);
 	char* listArguments[MAX_NUMBER_ARG];
 
+	inArguments = strtok_s(inString, " \n", &token);
 	if(strcmp(inArguments,"sair")==0){
 		return 1;
 	}
-	inArguments = strtok_s(inString, " \n", &token);
 	
-	realloc(out_comando, strlen(inArguments) + BIN_SIZE);
-	strcpy_s(out_comando, BIN_SIZE, "/bin/");
-	strcat_s(out_comando, strlen(inArguments) + BIN_SIZE, inArguments);
+	*out_comando = (char*)malloc( strlen(inArguments) + BIN_SIZE);
+	//realloc(out_comando, strlen(inArguments) + BIN_SIZE);
+	strcpy_s(*out_comando, BIN_SIZE, "/bin/");
+	strcat_s(*out_comando, strlen(inArguments) + BIN_SIZE, inArguments);
 	//printf("%s\n", out_comando);	
 	while (inArguments != NULL)
 	{
@@ -99,8 +105,10 @@ int getstring(char* out_comando, string_list* out_Arguments, char* out_path){
 		if(inArguments!=NULL){  // evita problema de comparação
 			if(strcmp(inArguments,">>") == 0 ){
 				inArguments = strtok_s(NULL, " \n", &token);
-				realloc(out_path,strlen(inArguments)+1);
-				strcpy_s(out_path,strlen(inArguments)+1,inArguments);
+				*out_path = (char*)malloc(strlen(inArguments)+1);
+				
+				//realloc(out_path,strlen(inArguments)+1);
+				strcpy_s(*out_path,strlen(inArguments)+1,inArguments);
 				//printf("%s", out_path );
 				inArguments = (char*)NULL;
 			}

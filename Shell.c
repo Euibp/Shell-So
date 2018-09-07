@@ -33,38 +33,38 @@ int main()
 	char *caminho_saida = NULL;
 	int interador = 0;
 	string_list argumentos;
-	FILE* arquivo;
+	FILE* arquivo = NULL;
 	while (1)
 	{
-		printf("Digite os argumentos o nome da comando e os argumentos:\n");
+		printf("Digite o nome do comando e os argumentos:\n");
 		if (getstring(&comando,&argumentos, &caminho_saida) == SAIR){
 			break;
 		};
 		printf("\n# Iniciando Processo \n");
 
+	 	
 		int filho_pid = fork();
 		if (filho_pid == 0) {
-		 	if(caminho_saida != NULL){
+			if(caminho_saida != NULL){
 				arquivo = fopen(caminho_saida, "w");
 				dup2(fileno(arquivo), fileno(stdout));
-				free(caminho_saida);
-				caminho_saida = NULL;
-				printf("MOLY");
-			 }
+			 }			
 			execvp(comando,argumentos);
+			if(arquivo != NULL) fclose(arquivo);
 			return SUCESSO;
 		} else {
 			wait(NULL);
-			printf("# Processo Finalizado\n\n");
-			continue;
-		}	
-		
-		dup2(fileno(stdout), fileno(stdout));
-		fclose(arquivo);
-		printf("isso ai\n\n");
+		}
+			
+		printf("# Processo Finalizado\n\n");
+		// Area de limpesa de Alocações;		
 		free(comando);
 		comando=NULL; 
 		free(argumentos);
+		if(caminho_saida != NULL){
+			free(caminho_saida);
+			caminho_saida = NULL;
+		}
 	}
 	
 	printf("Finalizando Shell ...\n\n");
